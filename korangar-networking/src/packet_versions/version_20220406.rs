@@ -19,8 +19,8 @@ pub fn register_login_server_packets<Callback>(
 where
     Callback: PacketCallback,
 {
-    packet_handler.register(|packet: LoginServerLoginSuccessPacket| NetworkEvent::LoginServerConnected {
-        character_servers: packet.character_server_information,
+    packet_handler.register(|packet: LoginServerLoginSuccessPacket_20170315| NetworkEvent::LoginServerConnected {
+        character_servers: packet.character_server_information.into_iter().map(|s| s.into()).collect(),
         login_data: LoginServerLoginData {
             account_id: packet.account_id,
             login_id1: packet.login_id1,
@@ -28,7 +28,7 @@ where
             sex: packet.sex,
         },
     })?;
-    packet_handler.register(|packet: LoginFailedPacket| {
+    packet_handler.register(|packet: LoginBannedPacked| {
         let (reason, message) = match packet.reason {
             LoginFailedReason::ServerClosed => (UnifiedLoginFailedReason::ServerClosed, "Server closed"),
             LoginFailedReason::AlreadyLoggedIn => (
@@ -68,7 +68,7 @@ pub fn register_character_server_packets<Callback>(
 where
     Callback: PacketCallback,
 {
-    packet_handler.register(|packet: LoginFailedPacket| {
+    packet_handler.register(|packet: LoginBannedPacked| {
         let reason = packet.reason;
         let message = match reason {
             LoginFailedReason::ServerClosed => "Server closed",
@@ -84,14 +84,14 @@ where
         },
     )?;
     packet_handler.register(|packet: RequestCharacterListSuccessPacket| NetworkEvent::CharacterList {
-        characters: packet.character_information,
+        characters: packet.character_information.into_iter().map(|c| c.into()).collect::<Vec<CharacterInformation>>(),
     })?;
-    packet_handler.register_noop::<CharacterListPacket>()?;
+    packet_handler.register_noop::<CharacterListPacket_20211103>()?;
     packet_handler.register_noop::<CharacterSlotPagePacket>()?;
     packet_handler.register_noop::<CharacterBanListPacket>()?;
     packet_handler.register_noop::<LoginPincodePacket>()?;
     packet_handler.register_noop::<Packet0b18>()?;
-    packet_handler.register(|packet: CharacterSelectionSuccessPacket| {
+    packet_handler.register(|packet: CharacterSelectionSuccessPacket_20170315| {
         let login_data = CharacterServerLoginData {
             server_ip: IpAddr::V4(packet.map_server_ip.into()),
             server_port: packet.map_server_port,
@@ -117,7 +117,7 @@ where
         NetworkEvent::CharacterSelectionFailed { reason, message }
     })?;
     packet_handler.register(|packet: CreateCharacterSuccessPacket| NetworkEvent::CharacterCreated {
-        character_information: packet.character_information,
+        character_information: packet.character_information.into(),
     })?;
     packet_handler.register(|packet: CharacterCreationFailedPacket| {
         let reason = packet.reason;

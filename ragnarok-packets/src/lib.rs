@@ -1,6 +1,8 @@
 #![cfg_attr(feature = "interface", feature(negative_impls))]
 #![cfg_attr(feature = "interface", feature(impl_trait_in_assoc_type))]
 
+#![allow(non_camel_case_types)]
+
 pub mod handler;
 mod position;
 
@@ -228,6 +230,55 @@ pub enum Sex {
     Server,
 }
 
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+pub struct CharacterInformation {
+    pub character_id: CharacterId,
+    pub experience: i64,
+    pub money: i32,
+    pub job_experience: i64,
+    pub job_level: i32,
+    pub body_state: i32,
+    pub health_state: i32,
+    pub effect_state: i32,
+    pub virtue: i32,
+    pub honor: i32,
+    pub stat_points: i16,
+    pub health_points: i64,
+    pub maximum_health_points: i64,
+    pub spell_points: i64,
+    pub maximum_spell_points: i64,
+    pub movement_speed: i16,
+    pub job: i16,
+    pub head: i16,
+    pub body: Option<i16>,
+    pub weapon: i16,
+    pub base_level: i16,
+    pub sp_point: i16,
+    pub accessory: i16,
+    pub shield: i16,
+    pub accessory2: i16,
+    pub accessory3: i16,
+    pub head_palette: i16,
+    pub body_palette: i16,
+    pub name: String,
+    pub strength: u8,
+    pub agility: u8,
+    pub vitality: u8,
+    pub intelligence: u8,
+    pub dexterity: u8,
+    pub luck: u8,
+    pub character_number: u8,
+    pub hair_color: u8,
+    pub b_is_changed_char: i16,
+    pub map_name: String,
+    pub deletion_reverse_date: i32,
+    pub robe_palette: i32,
+    pub character_slot_change_count: i32,
+    pub character_name_change_count: i32,
+    pub sex: Option<Sex>,
+}
+
 /// Sent by the client to the login server.
 /// The very first packet sent when logging in, it is sent after the user has
 /// entered email and password.
@@ -254,7 +305,7 @@ pub struct LoginServerLoginPacket {
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x0AC4)]
 #[variable_length]
-pub struct LoginServerLoginSuccessPacket {
+pub struct LoginServerLoginSuccessPacket_20170315 {
     pub login_id1: u32,
     pub account_id: AccountId,
     pub login_id2: u32,
@@ -270,12 +321,33 @@ pub struct LoginServerLoginSuccessPacket {
     pub sex: Sex,
     pub auth_token: AuthToken,
     #[repeating_remaining]
+    pub character_server_information: Vec<CharacterServerInformation_20170315>,
+}
+
+/// Sent by the login server as a response to [LoginServerLoginPacket]
+/// succeeding. After receiving this packet, the client will connect to one of
+/// the character servers provided by this packet.
+#[derive(Debug, Clone, Packet, ServerPacket, LoginServer)]
+#[header(0x0069)]
+#[variable_length]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+pub struct LoginServerLoginSuccessPacket {
+    pub login_id1: i32,
+    pub account_id: AccountId,
+    pub login_id2: u32,
+    #[new_default]
+    pub ip_address: u32,
+    #[new_default]
+    pub last_login_time: [u8; 26],
+    pub sex: Sex,
+    #[repeating_remaining]
     pub character_server_information: Vec<CharacterServerInformation>,
 }
 
 /// Sent by the character server as a response to [CharacterServerLoginPacket]
 /// succeeding. Provides basic information about the number of available
 /// character slots.
+/// Only after 20130000.
 #[derive(Debug, Clone, Packet, ServerPacket, CharacterServer)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x082D)]
@@ -295,14 +367,28 @@ pub struct CharacterServerLoginSuccessPacket {
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x006B)]
 #[variable_length]
-pub struct CharacterListPacket {
+pub struct CharacterListPacket_20211103 {
     pub maximum_slot_count: u8,
     pub available_slot_count: u8,
     pub vip_slot_count: u8,
     #[new_default]
     pub unknown: [u8; 20],
     #[repeating_remaining]
-    pub character_information: Vec<CharacterInformation>,
+    pub character_information: Vec<CharacterInformation_20211103>,
+}
+
+#[derive(Debug, Clone, Packet, ServerPacket, CharacterServer)]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+#[header(0x006B)]
+#[variable_length]
+pub struct CharacterListPacket_20100803 {
+    pub maximum_slot_count: u8,
+    pub available_slot_count: u8,
+    pub vip_slot_count: u8,
+    #[new_default]
+    pub unknown: [u8; 20],
+    #[repeating_remaining]
+    pub character_information: Vec<CharacterInformation_20100803>,
 }
 
 #[derive(Debug, Clone, Packet, ServerPacket, CharacterServer)]
@@ -374,7 +460,7 @@ pub enum LoginFailedReason {
 #[derive(Debug, Clone, Packet, ServerPacket, LoginServer, CharacterServer)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x0081)]
-pub struct LoginFailedPacket {
+pub struct LoginBannedPacked {
     pub reason: LoginFailedReason,
 }
 
@@ -429,7 +515,7 @@ pub struct CharacterSelectionFailedPacket {
 #[derive(Debug, Clone, Packet, ServerPacket, CharacterServer)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x0AC5)]
-pub struct CharacterSelectionSuccessPacket {
+pub struct CharacterSelectionSuccessPacket_20170315 {
     pub character_id: CharacterId,
     #[length(16)]
     pub map_name: String,
@@ -438,6 +524,20 @@ pub struct CharacterSelectionSuccessPacket {
     // NOTE: Could be `new_default` but Rust doesn't implement `[u8; 128]: Default`.
     #[new_value([0; 128])]
     pub unknown: [u8; 128],
+}
+
+/// Sent by the character server as a response to [SelectCharacterPacket]
+/// succeeding. Provides a map server to connect to, along with the ID of our
+/// selected character.
+#[derive(Debug, Clone, Packet, ServerPacket, CharacterServer)]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+#[header(0x71)]
+pub struct CharacterSelectionSuccessPacket {
+    pub character_id: CharacterId,
+    #[length(16)]
+    pub map_name: String,
+    pub map_server_ip: ServerAddress,
+    pub map_server_port: u16,
 }
 
 #[derive(Debug, Clone, ByteConvertable)]
@@ -451,7 +551,7 @@ pub enum CharacterCreationFailedReason {
     CharacterCerationFailed,
 }
 
-/// Sent by the character server as a response to [CreateCharacterPacket]
+/// Sent by the character server as a response to [CreateCharacterPacket_20151001]
 /// failing. Provides a reason for the character creation failing.
 #[derive(Debug, Clone, Packet, ServerPacket, CharacterServer)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
@@ -473,7 +573,7 @@ pub struct LoginServerKeepalivePacket {
 
 #[derive(Debug, Clone, ByteConvertable, FixedByteSize)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
-pub struct CharacterServerInformation {
+pub struct CharacterServerInformation_20170315 {
     pub server_ip: ServerAddress,
     pub server_port: u16,
     #[length(20)]
@@ -483,6 +583,31 @@ pub struct CharacterServerInformation {
     pub display_new: u16, // bool16 ?
     #[new_value([0; 128])]
     pub unknown: [u8; 128],
+}
+
+impl Into<CharacterServerInformation> for CharacterServerInformation_20170315 {
+    fn into(self) -> CharacterServerInformation {
+        CharacterServerInformation {
+            server_ip: self.server_ip,
+            server_port: self.server_port,
+            server_name: self.server_name,
+            user_count: self.user_count,
+            server_type: self.server_type,
+            display_new: self.display_new,
+        }
+    }
+}
+
+#[derive(Debug, Clone, ByteConvertable, FixedByteSize)]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+pub struct CharacterServerInformation {
+    pub server_ip: ServerAddress,
+    pub server_port: u16,
+    #[length(20)]
+    pub server_name: String,
+    pub user_count: u16,
+    pub server_type: u16, // ServerType
+    pub display_new: u16, // bool16 ?
 }
 
 /// Sent by the client to the character server after after successfully logging
@@ -506,7 +631,7 @@ pub struct CharacterServerLoginPacket {
 #[derive(Debug, Clone, Packet, ClientPacket, MapServer)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x0436)]
-pub struct MapServerLoginPacket {
+pub struct MapServerLoginPacket_20211103 {
     pub account_id: AccountId,
     pub character_id: CharacterId,
     pub login_id1: u32,
@@ -514,6 +639,20 @@ pub struct MapServerLoginPacket {
     pub sex: Sex,
     #[new_default]
     pub unknown: [u8; 4],
+}
+
+/// Sent by the client to the map server after after successfully selecting a
+/// character. Attempts to log into the map server using the provided
+/// information.
+#[derive(Debug, Clone, Packet, ClientPacket, MapServer)]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+#[header(0x086A)]
+pub struct MapServerLoginPacket_20120307 {
+    pub account_id: AccountId,
+    pub character_id: CharacterId,
+    pub login_id1: u32,
+    pub client_tick: ClientTick,
+    pub sex: Sex,
 }
 
 #[derive(Debug, Clone, Packet, ServerPacket, MapServer)]
@@ -530,7 +669,7 @@ pub struct Packet8302 {
 #[derive(Debug, Clone, Packet, ClientPacket, CharacterServer)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x0A39)]
-pub struct CreateCharacterPacket {
+pub struct CreateCharacterPacket_20151001 {
     #[length(24)]
     pub name: String,
     pub slot: u8,
@@ -542,9 +681,45 @@ pub struct CreateCharacterPacket {
     pub sex: Sex,
 }
 
+/// Sent by the client to the character server when the player tries to create
+/// a new character.
+/// Attempts to create a new character in an empty slot using the provided
+/// information.
+#[derive(Debug, Clone, Packet, ClientPacket, CharacterServer)]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+#[header(0x67)]
+pub struct CreateCharacterPacket {
+    #[length(24)]
+    pub name: String,
+    pub slot: u8,
+    pub str: u8,
+    pub agi: u8,
+    pub vit: u8,
+    pub int: u8,
+    pub dex: u8,
+    pub luk: u8,
+    pub hair_color: u16, // TODO: HairColor
+    pub hair_style: u16, // TODO: HairStyle
+}
+
+/// Sent by the client to the character server when the player tries to create
+/// a new character.
+/// Attempts to create a new character in an empty slot using the provided
+/// information.
+#[derive(Debug, Clone, Packet, ClientPacket, CharacterServer)]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+#[header(0x0970)]
+pub struct CreateCharacterPacket_20120307 {
+    #[length(24)]
+    pub name: String,
+    pub slot: u8,
+    pub hair_style: u16, // TODO: HairStyle
+    pub hair_color: u16, // TODO: HairColor
+}
+
 #[derive(Debug, Clone, ByteConvertable, FixedByteSize)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
-pub struct CharacterInformation {
+pub struct CharacterInformation_20211103 {
     pub character_id: CharacterId,
     pub experience: i64,
     pub money: i32,
@@ -593,8 +768,159 @@ pub struct CharacterInformation {
     pub sex: Sex,
 }
 
+impl Into<CharacterInformation> for CharacterInformation_20211103 {
+    fn into(self) -> CharacterInformation {
+        CharacterInformation {
+            character_id: self.character_id,
+            experience: self.experience,
+            money: self.money,
+            job_experience: self.job_experience,
+            job_level: self.job_level,
+            body_state: self.body_state,
+            health_state: self.health_state,
+            effect_state: self.effect_state,
+            virtue: self.virtue,
+            honor: self.honor,
+            stat_points: self.stat_points,
+            health_points: self.health_points,
+            maximum_health_points: self.maximum_health_points,
+            spell_points: self.spell_points,
+            maximum_spell_points: self.maximum_spell_points,
+            movement_speed: self.movement_speed,
+            job: self.job,
+            head: self.head,
+            body: Some(self.body),
+            weapon: self.weapon,
+            base_level: self.base_level,
+            sp_point: self.sp_point,
+            accessory: self.accessory,
+            shield: self.shield,
+            accessory2: self.accessory2,
+            accessory3: self.accessory3,
+            head_palette: self.head_palette,
+            body_palette: self.body_palette,
+            name: self.name,
+            strength: self.strength,
+            agility: self.agility,
+            vitality: self.vitality,
+            intelligence: self.intelligence,
+            dexterity: self.dexterity,
+            luck: self.luck,
+            character_number: self.character_number,
+            hair_color: self.hair_color,
+            b_is_changed_char: self.b_is_changed_char,
+            map_name: self.map_name,
+            deletion_reverse_date: self.deletion_reverse_date,
+            robe_palette: self.robe_palette,
+            character_slot_change_count: self.character_slot_change_count,
+            character_name_change_count: self.character_name_change_count,
+            sex: Some(self.sex),
+        }
+    }
+}
+
+#[derive(Debug, Clone, ByteConvertable, FixedByteSize)]
+#[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
+pub struct CharacterInformation_20100803 {
+    pub character_id: CharacterId,
+    pub experience: i32,
+    pub money: i32,
+    pub job_experience: i32,
+    pub job_level: i32,
+    pub body_state: i32,
+    pub health_state: i32,
+    pub effect_state: i32,
+    pub virtue: i32,
+    pub honor: i32,
+    pub stat_points: i16,
+    pub health_points: i32,
+    pub maximum_health_points: i32,
+    pub spell_points: i16,
+    pub maximum_spell_points: i16,
+    pub movement_speed: i16,
+    pub job: i16,
+    pub head: i16,
+    pub weapon: i16,
+    pub base_level: i16,
+    pub sp_point: i16,
+    pub accessory: i16,
+    pub shield: i16,
+    pub accessory2: i16,
+    pub accessory3: i16,
+    pub head_palette: i16,
+    pub body_palette: i16,
+    #[length(24)]
+    pub name: String,
+    pub strength: u8,
+    pub agility: u8,
+    pub vitality: u8,
+    pub intelligence: u8,
+    pub dexterity: u8,
+    pub luck: u8,
+    pub character_number: u8,
+    pub hair_color: u8,
+    pub b_is_changed_char: i16,
+    #[length(16)]
+    pub map_name: String,
+    pub deletion_reverse_date: i32,
+    pub robe_palette: i32,
+    pub character_slot_change_count: i32,
+    pub character_name_change_count: i32,
+}
+
+impl Into<CharacterInformation> for CharacterInformation_20100803 {
+    fn into(self) -> CharacterInformation {
+        CharacterInformation {
+            character_id: self.character_id,
+            experience: self.experience as i64,
+            money: self.money,
+            job_experience: self.job_experience as i64,
+            job_level: self.job_level,
+            body_state: self.body_state,
+            health_state: self.health_state,
+            effect_state: self.effect_state,
+            virtue: self.virtue,
+            honor: self.honor,
+            stat_points: self.stat_points,
+            health_points: self.health_points as i64,
+            maximum_health_points: self.maximum_health_points as i64,
+            spell_points: self.spell_points as i64,
+            maximum_spell_points: self.maximum_spell_points as i64,
+            movement_speed: self.movement_speed,
+            job: self.job,
+            head: self.head,
+            body: None,
+            weapon: self.weapon,
+            base_level: self.base_level,
+            sp_point: self.sp_point,
+            accessory: self.accessory,
+            shield: self.shield,
+            accessory2: self.accessory2,
+            accessory3: self.accessory3,
+            head_palette: self.head_palette,
+            body_palette: self.body_palette,
+            name: self.name,
+            strength: self.strength,
+            agility: self.agility,
+            vitality: self.vitality,
+            intelligence: self.intelligence,
+            dexterity: self.dexterity,
+            luck: self.luck,
+            character_number: self.character_number,
+            hair_color: self.hair_color,
+            b_is_changed_char: self.b_is_changed_char,
+            map_name: self.map_name,
+            deletion_reverse_date: self.deletion_reverse_date,
+            robe_palette: self.robe_palette,
+            character_slot_change_count: self.character_slot_change_count,
+            character_name_change_count: self.character_name_change_count,
+            sex: None,
+        }
+    }
+}
+
 #[cfg(feature = "interface")]
-impl rust_state::VecItem for CharacterInformation {
+impl rust_state::VecItem for CharacterInformation_20211103 {
     // TODO: Use CharacterId
     type Id = u32;
 
@@ -603,14 +929,14 @@ impl rust_state::VecItem for CharacterInformation {
     }
 }
 
-/// Sent by the character server as a response to [CreateCharacterPacket]
+/// Sent by the character server as a response to [CreateCharacterPacket_20151001]
 /// succeeding. Provides all character information of the newly created
 /// character.
 #[derive(Debug, Clone, Packet, ServerPacket, CharacterServer)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x0B6F)]
 pub struct CreateCharacterSuccessPacket {
-    pub character_information: CharacterInformation,
+    pub character_information: CharacterInformation_20211103,
 }
 
 /// Sent by the client to the character server.
@@ -628,7 +954,7 @@ pub struct RequestCharacterListPacket {}
 #[variable_length]
 pub struct RequestCharacterListSuccessPacket {
     #[repeating_remaining]
-    pub character_information: Vec<CharacterInformation>,
+    pub character_information: Vec<CharacterInformation_20211103>,
 }
 
 /// Sent by the map server to the client.

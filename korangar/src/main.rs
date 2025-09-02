@@ -48,7 +48,8 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
-
+use std::thread::sleep;
+use std::time::Duration;
 use cgmath::{Point3, Vector3};
 use image::{EncodableLayout, ImageFormat, ImageReader};
 use input::{MouseInputMode, MouseModeExt};
@@ -70,10 +71,7 @@ use korangar_networking::{
 use networking::{PacketHistory, PacketHistoryCallback};
 #[cfg(not(feature = "debug"))]
 use ragnarok_packets::handler::NoPacketCallback;
-use ragnarok_packets::{
-    BuyShopItemsResult, CharacterServerInformation, Direction, DisappearanceReason, HotbarSlot, SellItemsResult, SkillId, SkillType,
-    TilePosition, UnitId, WorldPosition,
-};
+use ragnarok_packets::{BuyShopItemsResult, CharacterServerInformation, Direction, DisappearanceReason, HotbarSlot, SellItemsResult, SkillId, SkillType, TilePosition, UnitId, WorldPosition};
 use renderer::InterfaceRenderer;
 use rust_state::{Context, ManuallyAssertExt};
 #[cfg(feature = "debug")]
@@ -1135,7 +1133,7 @@ impl Client {
                         .cloned()
                         .unwrap();
 
-                    let mut player = Entity::Player(Player::new(saved_login_data.account_id, &character_information, client_tick));
+                    let mut player = Entity::Player(Player::new(saved_login_data.account_id, &character_information, client_tick, saved_login_data.sex));
 
                     *self.client_state.follow_mut(client_state().player_name()) = character_information.name;
 
@@ -1859,6 +1857,7 @@ impl Client {
                     let packet_version = match service.packet_version {
                         Some(packet_version) => match packet_version {
                             PacketVersion::_20220406 => SupportedPacketVersion::_20220406,
+                            PacketVersion::_20120307 => SupportedPacketVersion::_20120307,
                             PacketVersion::Unsupported(packet_version) => {
                                 self.interface.open_window(ErrorWindow::new(format!(
                                     "Selected server has an unsupported package version: {packet_version}"

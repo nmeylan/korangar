@@ -5,17 +5,33 @@
     <servertype>sakray</servertype>
     <readfolder />
     <connection>
-        <display>Korangar</display>
+        <display>Rust ro</display>
         <desc>Ragnarok Online</desc>
         <balloon>Sakray Server</balloon>
-        <address>49.12.109.207</address>
-        <port>6900</port>
+        <address>127.0.0.1</address>
+        <port>6901</port>
         <version>20</version>
         <langtype>1</langtype>
+        <packet_version>20120307</packet_version>
         <yellow />
         <aid />
         <loading>
             <image>loading00.jpg</image>
         </loading>
     </connection>
+        <connection>
+            <display>Korangar</display>
+            <desc>Ragnarok Online</desc>
+            <balloon>Sakray Server</balloon>
+            <address>49.12.109.207</address>
+            <port>6900</port>
+            <version>20</version>
+            <langtype>1</langtype>
+            <yellow />
+            <aid />
+            <loading>
+                <image>loading00.jpg</image>
+            </loading>
+        </connection>
+
 </clientinfo>

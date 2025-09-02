@@ -168,6 +168,8 @@ where
             return HandlerResult::UnhandledPacket;
         };
 
+        println!("nmey found packet handler for {:?}", header);
+
         match handler(byte_reader) {
             Ok(output) => HandlerResult::Ok(output),
             // Cut-off packet (probably).
@@ -177,6 +179,7 @@ where
             }
             Err(error) => {
                 byte_reader.restore_save_point(save_point);
+                println!("nmey failed_packet {:?}", error);
 
                 self.packet_callback.failed_packet(byte_reader.remaining_bytes(), error.clone());
 

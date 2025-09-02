@@ -15,7 +15,7 @@ pub struct EntityData {
 }
 
 impl EntityData {
-    pub fn from_character(account_id: AccountId, character_information: &CharacterInformation, position: WorldPosition) -> Self {
+    pub fn from_character(account_id: AccountId, character_information: &CharacterInformation, position: WorldPosition, account_sex: Sex) -> Self {
         Self {
             entity_id: EntityId(account_id.0),
             movement_speed: character_information.movement_speed as u16,
@@ -26,7 +26,7 @@ impl EntityData {
             health_points: character_information.health_points as i32,
             maximum_health_points: character_information.maximum_health_points as i32,
             head_direction: 0, // TODO: get correct rotation
-            sex: character_information.sex,
+            sex: character_information.sex.unwrap_or(account_sex),
         }
     }
 }
