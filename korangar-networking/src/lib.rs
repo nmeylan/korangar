@@ -740,8 +740,8 @@ where
 
     pub fn player_move(&mut self, position: WorldPosition) -> Result<(), NotConnectedError> {
         match self.map_server_packet_version()? {
-            SupportedPacketVersion::_20220406 => self.send_map_server_packet(RequestPlayerMovePacket::new(position)),
-            SupportedPacketVersion::_20120307 => todo!("player_move unsupported for packet version 20120307"),
+            SupportedPacketVersion::_20220406 => self.send_map_server_packet(RequestPlayerMovePacket::new_20220406(position)),
+            SupportedPacketVersion::_20120307 => self.send_map_server_packet(RequestPlayerMovePacket::new_20120307(position)),
         }
     }
 

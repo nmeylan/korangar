@@ -5,7 +5,6 @@
 
 pub mod handler;
 mod position;
-
 use std::net::Ipv4Addr;
 
 use ragnarok_bytes::{
@@ -37,6 +36,13 @@ pub trait Packet: std::fmt::Debug + Send + Clone + 'static {
     const IS_PING: bool;
     /// The header of the Packet.
     const HEADER: PacketHeader;
+
+    /// Get the packet header for this instance.
+    /// For versioned packets, this returns the version-specific header.
+    /// For non-versioned packets, returns the const HEADER.
+    fn packet_header(&self) -> PacketHeader {
+        Self::HEADER
+    }
 
     /// Read packet **without the header**. To read the packet with the header,
     /// use [`PacketExt::packet_from_bytes`].
@@ -81,7 +87,7 @@ where
     }
 
     fn packet_to_bytes(&self, byte_writer: &mut ByteWriter) -> ConversionResult<usize> {
-        let mut written = Self::HEADER.to_bytes(byte_writer)?;
+        let mut written = self.packet_header().to_bytes(byte_writer)?;
         written += self.payload_to_bytes(byte_writer)?;
         Ok(written)
     }
@@ -968,8 +974,11 @@ pub struct MapServerPingPacket {}
 /// Attempts to path the player towards the provided position.
 #[derive(Debug, Clone, Packet, ClientPacket, MapServer)]
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
-#[header(0x0881)]
+#[header(0x0881, version = "20220406")]
+#[header(0x035F, version = "20120307")]
 pub struct RequestPlayerMovePacket {
+    #[hidden_element]
+    pub header: PacketHeader,
     pub position: WorldPosition,
 }
 
