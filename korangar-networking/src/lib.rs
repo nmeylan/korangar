@@ -668,14 +668,13 @@ where
     pub fn request_character_list(&mut self) -> Result<(), NotConnectedError> {
         match self.character_server_packet_version()? {
             SupportedPacketVersion::_20220406 => self.send_character_server_packet(RequestCharacterListPacket::default()),
-            _ => Ok(())
+            // This packet does not exist for below versions
+            SupportedPacketVersion::_20120307 => Ok(())
         }
     }
 
     pub fn select_character(&mut self, character_slot: usize) -> Result<(), NotConnectedError> {
-        match self.character_server_packet_version()? {
-            _ => self.send_character_server_packet(SelectCharacterPacket::new(character_slot as u8)),
-        }
+        self.send_character_server_packet(SelectCharacterPacket::new(character_slot as u8))
     }
 
     pub fn create_character(&mut self, slot: usize, name: String) -> Result<(), NotConnectedError> {
@@ -703,6 +702,7 @@ where
             SupportedPacketVersion::_20220406 => {
                 self.send_character_server_packet(SwitchCharacterSlotPacket::new(origin_slot as u16, destination_slot as u16))
             },
+            // This packet does not exist for below versions
             SupportedPacketVersion::_20120307 => Ok(())
         }
     }
@@ -720,22 +720,15 @@ where
             .map(|time_synchronization| time_synchronization.client_tick as u32)
             .unwrap_or(100);
 
-        match self.map_server_packet_version()? {
-            _ => self.send_map_server_packet(RequestServerTickPacket::new(ClientTick(client_tick))),
-        }
+        self.send_map_server_packet(RequestServerTickPacket::new(ClientTick(client_tick)))
     }
 
     pub fn respawn(&mut self) -> Result<(), NotConnectedError> {
-        match self.map_server_packet_version()? {
-            _ => self.send_map_server_packet(RestartPacket::new(RestartType::Respawn)),
-        }
+        self.send_map_server_packet(RestartPacket::new(RestartType::Respawn))
     }
 
     pub fn log_out(&mut self) -> Result<(), NotConnectedError> {
-        match self.map_server_packet_version()? {
-            SupportedPacketVersion::_20220406 => self.send_map_server_packet(RestartPacket::new(RestartType::Disconnect)),
-            SupportedPacketVersion::_20120307 => todo!("log_out unsupported for packet version 20120307"),
-        }
+        self.send_map_server_packet(RestartPacket::new(RestartType::Disconnect))
     }
 
     pub fn player_move(&mut self, position: WorldPosition) -> Result<(), NotConnectedError> {
@@ -746,10 +739,7 @@ where
     }
 
     pub fn warp_to_map(&mut self, map_name: String, position: TilePosition) -> Result<(), NotConnectedError> {
-        match self.map_server_packet_version()? {
-            SupportedPacketVersion::_20220406 => self.send_map_server_packet(RequestWarpToMapPacket::new(map_name, position)),
-            SupportedPacketVersion::_20120307 => todo!("warp_to_map unsupported for packet version 20120307"),
-        }
+        self.send_map_server_packet(RequestWarpToMapPacket::new(map_name, position))
     }
 
     pub fn entity_details(&mut self, entity_id: EntityId) -> Result<(), NotConnectedError> {
@@ -769,38 +759,23 @@ where
     pub fn send_chat_message(&mut self, player_name: &str, text: &str) -> Result<(), NotConnectedError> {
         let message = format!("{} : {}", player_name, text);
 
-        match self.map_server_packet_version()? {
-            SupportedPacketVersion::_20220406 => self.send_map_server_packet(GlobalMessagePacket::new(message)),
-            SupportedPacketVersion::_20120307 => todo!("send_chat_message unsupported for packet version 20120307"),
-        }
+        self.send_map_server_packet(GlobalMessagePacket::new(message))
     }
 
     pub fn start_dialog(&mut self, npc_id: EntityId) -> Result<(), NotConnectedError> {
-        match self.map_server_packet_version()? {
-            SupportedPacketVersion::_20220406 => self.send_map_server_packet(StartDialogPacket::new(npc_id)),
-            SupportedPacketVersion::_20120307 => todo!("start_dialog unsupported for packet version 20120307"),
-        }
+        self.send_map_server_packet(StartDialogPacket::new(npc_id))
     }
 
     pub fn next_dialog(&mut self, npc_id: EntityId) -> Result<(), NotConnectedError> {
-        match self.map_server_packet_version()? {
-            SupportedPacketVersion::_20220406 => self.send_map_server_packet(NextDialogPacket::new(npc_id)),
-            SupportedPacketVersion::_20120307 => todo!("next_dialog unsupported for packet version 20120307"),
-        }
+        self.send_map_server_packet(NextDialogPacket::new(npc_id))
     }
 
     pub fn close_dialog(&mut self, npc_id: EntityId) -> Result<(), NotConnectedError> {
-        match self.map_server_packet_version()? {
-            SupportedPacketVersion::_20220406 => self.send_map_server_packet(CloseDialogPacket::new(npc_id)),
-            SupportedPacketVersion::_20120307 => todo!("close_dialog unsupported for packet version 20120307"),
-        }
+        self.send_map_server_packet(CloseDialogPacket::new(npc_id))
     }
 
     pub fn choose_dialog_option(&mut self, npc_id: EntityId, option: i8) -> Result<(), NotConnectedError> {
-        match self.map_server_packet_version()? {
-            SupportedPacketVersion::_20220406 => self.send_map_server_packet(ChooseDialogOptionPacket::new(npc_id, option)),
-            SupportedPacketVersion::_20120307 => todo!("choose_dialog_option unsupported for packet version 20120307"),
-        }
+        self.send_map_server_packet(ChooseDialogOptionPacket::new(npc_id, option))
     }
 
     pub fn request_item_equip(&mut self, item_index: InventoryIndex, equip_position: EquipPosition) -> Result<(), NotConnectedError> {

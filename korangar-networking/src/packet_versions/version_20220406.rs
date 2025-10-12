@@ -246,13 +246,13 @@ where
     packet_handler.register(|packet: ResurrectionPacket| NetworkEvent::ResurrectPlayer {
         entity_id: packet.entity_id,
     })?;
-    packet_handler.register(|packet: EntityAppearedPacket| NetworkEvent::AddEntity {
+    packet_handler.register(|packet: EntityAppearedNewPacket_20141022| NetworkEvent::AddEntity {
         entity_data: packet.into(),
     })?;
-    packet_handler.register(|packet: EntityAppeared2Packet| NetworkEvent::AddEntity {
+    packet_handler.register(|packet: EntityAppearedStandPacket_20141022| NetworkEvent::AddEntity {
         entity_data: packet.into(),
     })?;
-    packet_handler.register(|packet: MovingEntityAppearedPacket| NetworkEvent::AddEntity {
+    packet_handler.register(|packet: EntityAppearedMovePacket_20141022| NetworkEvent::AddEntity {
         entity_data: packet.into(),
     })?;
     packet_handler.register(|packet: EntityDisappearedPacket| NetworkEvent::RemoveEntity {

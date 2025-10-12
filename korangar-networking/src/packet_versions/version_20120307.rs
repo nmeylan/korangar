@@ -1,12 +1,10 @@
 use std::net::IpAddr;
 use std::time::Instant;
 use ragnarok_packets::handler::{DuplicateHandlerError, PacketCallback, PacketHandler};
-use ragnarok_packets::{ChangeMapPacket, CharacterCreationFailedPacket, CharacterCreationFailedReason, CharacterDeletionFailedPacket, CharacterDeletionFailedReason, CharacterDeletionSuccessPacket, CharacterInformation, CharacterListPacket_20100803, CharacterSelectionFailedPacket, CharacterSelectionFailedReason, CharacterSelectionSuccessPacket, CreateCharacterSuccessPacket, LoginBannedPacked, LoginFailedPacket2, LoginFailedReason, LoginFailedReason2, LoginPincodePacket, LoginServerLoginSuccessPacket, MapServerLoginSuccessPacket, MapServerPingPacket, MapServerUnavailablePacket, MapTypePacket, SpriteChangePacket, SpriteChangeType, SwitchCharacterSlotResponsePacket, SwitchCharacterSlotResponseStatus, UpdateSkillTreePacket, UpdateStatPacket, UpdateStatPacket1, UpdateStatPacket2, UpdateStatPacket3};
+use ragnarok_packets::{BuyOrSellPacket, ChangeMapPacket, CharacterCreationFailedPacket, CharacterCreationFailedReason, CharacterDeletionFailedPacket, CharacterDeletionFailedReason, CharacterDeletionSuccessPacket, CharacterInformation, CharacterListPacket_20100803, CharacterSelectionFailedPacket, CharacterSelectionFailedReason, CharacterSelectionSuccessPacket, CloseButtonPacket, CreateCharacterSuccessPacket, DialogMenuPacket, DisconnectResponsePacket, DisconnectResponseStatus, EntityMovePacket, EntityStopMovePacket, HotkeyData, InitialStatsPacket, LoginBannedPacked, LoginFailedPacket2, LoginFailedReason, LoginFailedReason2, LoginPincodePacket, LoginServerLoginSuccessPacket, MapServerLoginSuccessPacket, MapServerPingPacket, MapServerUnavailablePacket, MapTypePacket, NextButtonPacket, NpcDialogPacket, Packet0b18, Packet8302, PlayerMovePacket, RestartResponsePacket, RestartResponseStatus, SpriteChangePacket, SpriteChangeType, SwitchCharacterSlotResponsePacket, SwitchCharacterSlotResponseStatus, UpdateHotkeysPacket, UpdateSkillTreePacket, UpdateStatPacket, UpdateStatPacket1, UpdateStatPacket2, UpdateStatPacket3};
 
 use crate::event::{NetworkEventList, NoNetworkEvents};
-use crate::{
-    CharacterServerLoginData, LoginServerLoginData, NetworkEvent, UnifiedCharacterSelectionFailedReason, UnifiedLoginFailedReason,
-};
+use crate::{CharacterServerLoginData, HotkeyState, LoginServerLoginData, MessageColor, NetworkEvent, UnifiedCharacterSelectionFailedReason, UnifiedLoginFailedReason};
 
 pub fn register_login_server_packets<Callback>(
     packet_handler: &mut PacketHandler<NetworkEventList, (), Callback>,
@@ -156,12 +154,99 @@ where
         client_tick: packet.client_tick,
         received_at: Instant::now(),
     })?;
+
+    // Map events
     packet_handler.register(|packet: ChangeMapPacket| {
         let ChangeMapPacket { map_name, position } = packet;
 
         let map_name = map_name.replace(".gat", "");
 
         NetworkEvent::ChangeMap { map_name, position }
+    })?;
+    packet_handler.register_noop::<MapTypePacket>()?;
+    // UI
+    packet_handler.register(|packet: RestartResponsePacket| match packet.result {
+        RestartResponseStatus::Ok => NetworkEvent::LoggedOut,
+        RestartResponseStatus::Nothing => NetworkEvent::ChatMessage {
+            text: "Failed to log out.".to_string(),
+            color: MessageColor::Error,
+        },
+    })?;
+    packet_handler.register(|packet: DisconnectResponsePacket| match packet.result {
+        DisconnectResponseStatus::Ok => NetworkEvent::LoggedOut,
+        DisconnectResponseStatus::Wait10Seconds => NetworkEvent::ChatMessage {
+            text: "Please wait 10 seconds before trying to log out.".to_string(),
+            color: MessageColor::Error,
+        },
+    })?;
+    packet_handler.register(|packet: UpdateHotkeysPacket| NetworkEvent::SetHotkeyData {
+        tab: packet.tab,
+        hotkeys: packet
+            .hotkeys
+            .into_iter()
+            .map(|hotkey_data| match hotkey_data == HotkeyData::UNBOUND {
+                true => HotkeyState::Unbound,
+                false => HotkeyState::Bound(hotkey_data),
+            })
+            .collect(),
+    })?;
+    // Movement
+    packet_handler.register(|packet: PlayerMovePacket| {
+        let PlayerMovePacket {
+            starting_timestamp,
+            from_to,
+        } = packet;
+
+        let (origin, destination) = from_to.to_origin_destination();
+
+        NetworkEvent::PlayerMove {
+            origin,
+            destination,
+            starting_timestamp,
+        }
+    })?;
+
+    packet_handler.register(|packet: EntityMovePacket| {
+        let EntityMovePacket {
+            entity_id,
+            from_to,
+            starting_timestamp,
+        } = packet;
+
+        let (origin, destination) = from_to.to_origin_destination();
+
+        NetworkEvent::EntityMove {
+            entity_id,
+            origin,
+            destination,
+            starting_timestamp,
+        }
+    })?;
+    packet_handler.register_noop::<EntityStopMovePacket>()?;
+    // Stats
+    packet_handler.register(|packet: InitialStatsPacket| {
+        let InitialStatsPacket {
+            strength_stat_points_cost,
+            agility_stat_points_cost,
+            vitality_stat_points_cost,
+            intelligence_stat_points_cost,
+            dexterity_stat_points_cost,
+            luck_stat_points_cost,
+            ..
+        } = packet;
+
+        NetworkEvent::InitialStats {
+            strength_stat_points_cost,
+            agility_stat_points_cost,
+            vitality_stat_points_cost,
+            intelligence_stat_points_cost,
+            dexterity_stat_points_cost,
+            luck_stat_points_cost,
+        }
+    })?;
+    packet_handler.register(|packet: UpdateSkillTreePacket| {
+        let UpdateSkillTreePacket { skill_information } = packet;
+        NetworkEvent::SkillTree { skill_information }
     })?;
     packet_handler.register(|packet: UpdateStatPacket| {
         let UpdateStatPacket { stat_type } = packet;
@@ -191,10 +276,34 @@ where
         _ => None,
     })?;
 
-    packet_handler.register_noop::<MapTypePacket>()?;
-    packet_handler.register(|packet: UpdateSkillTreePacket| {
-        let UpdateSkillTreePacket { skill_information } = packet;
-        NetworkEvent::SkillTree { skill_information }
+    // NPC packet
+    packet_handler.register(|packet: NextButtonPacket| {
+        let NextButtonPacket { npc_id } = packet;
+
+        NetworkEvent::AddNextButton { npc_id }
     })?;
+    packet_handler.register(|packet: CloseButtonPacket| {
+        let CloseButtonPacket { npc_id } = packet;
+
+        NetworkEvent::AddCloseButton { npc_id }
+    })?;
+    packet_handler.register(|packet: DialogMenuPacket| {
+        let DialogMenuPacket { npc_id, message } = packet;
+
+        let choices = message.split(':').map(String::from).filter(|text| !text.is_empty()).collect();
+
+        NetworkEvent::AddChoiceButtons { choices, npc_id }
+    })?;
+    packet_handler.register(|packet: NpcDialogPacket| {
+        let NpcDialogPacket { npc_id, text } = packet;
+
+        NetworkEvent::OpenDialog { text, npc_id }
+    })?;
+    packet_handler.register(|packet: BuyOrSellPacket| NetworkEvent::AskBuyOrSell { shop_id: packet.shop_id })?;
+    // Skill
+
+    // Unknown
+    packet_handler.register_noop::<Packet8302>()?;
+    packet_handler.register_noop::<Packet0b18>()?;
     Ok(())
 }

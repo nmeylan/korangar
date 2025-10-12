@@ -2016,7 +2016,7 @@ pub struct EntityDisappearedPacket {
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x09FD)]
 #[variable_length]
-pub struct MovingEntityAppearedPacket {
+pub struct EntityAppearedMovePacket_20141022 {
     pub object_type: u8,
     pub entity_id: EntityId,
     pub group_id: u32, // may be reversed - or completely wrong
@@ -2069,7 +2069,7 @@ pub struct ResurrectionPacket {
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x09FE)]
 #[variable_length]
-pub struct EntityAppearedPacket {
+pub struct EntityAppearedNewPacket_20141022 {
     pub object_type: u8,
     pub entity_id: EntityId,
     pub group_id: u32, // may be reversed - or completely wrong
@@ -2111,7 +2111,7 @@ pub struct EntityAppearedPacket {
 #[cfg_attr(feature = "interface", derive(rust_state::RustState, korangar_interface::element::StateElement))]
 #[header(0x09FF)]
 #[variable_length]
-pub struct EntityAppeared2Packet {
+pub struct EntityAppearedStandPacket_20141022 {
     pub object_type: u8,
     pub entity_id: EntityId,
     pub group_id: u32, // may be reversed - or completely wrong
